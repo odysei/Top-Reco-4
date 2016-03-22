@@ -194,6 +194,18 @@ void topReconstructionFromLHE::Loop_diagnostics(handleEvent &evh)
     cout << "Event, pT(gen_all), pT(best_all), pT(tt) = " << eventNumber << ", "
          << gen_all.Pt() << ", " << best_all.Pt() << ", " << best_tt.Pt()
          << endl;
+
+    if (debug_verbosity < 3)
+        return;
+
+    const double chi2 =
+        evh.chiSquareds["bottom"] + evh.chiSquareds["antiBottom"] +
+        evh.chiSquareds["qFromW"] + evh.chiSquareds["qbarFromW"] +
+        evh.chiSquareds["lepton_or_antilepton"] +
+        evh.chiSquareds["leptonicWMass"];
+
+    cout << "Event, rel_error(ttbb), chi2(bbqqlW) = " << eventNumber << ", "
+         << rel_error << ", " << chi2 << endl;
 }
 
 void topReconstructionFromLHE::Print_smear_bs_SM(handleEvent &evh)

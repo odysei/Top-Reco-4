@@ -1,5 +1,5 @@
-#ifndef LIGHTJETCHISQUAREMINIMUMSOLVER
-#define LIGHTJETCHISQUAREMINIMUMSOLVER
+#ifndef lightJetChiSquareMinimumSolver_h
+#define lightJetChiSquareMinimumSolver_h
 
 #include <vector>
 #include <cmath>
@@ -25,7 +25,8 @@ class lightJetChiSquareMinimumSolver
 {
 
   private:
-    bool do3D_;
+    const bool do3D_;
+    const bool debug = false;
 
     vector<double> jetPxWidths2_, jetPyWidths2_, jetPzWidths2_, jetPxPyWidths_,
         jetPxPzWidths_, jetPyPzWidths_;
@@ -33,14 +34,16 @@ class lightJetChiSquareMinimumSolver
     const double &dx_, &dy_, &dz_;
     double dxCheck_, dyCheck_, dzCheck_;
 
-    vector<TMatrixD> jetSigmas2D_;
-    vector<TMatrixD> jetSigmas3D_;
+    vector<TMatrixD> cov2D_;           // covariance matrix for 2D case
+    vector<TMatrixD> cov3D_;           // covariance matrix for 2D case
+    vector<TMatrixD> inv_sum_x_cov2D_; // cov2D_[i] * inv_sum_cov2D_
+    vector<TMatrixD> inv_sum_x_cov3D_; // cov3D_[i] * inv_sum_cov3D_
 
     TDecompBase *inverter2D_;
     TDecompBase *inverter3D_;
 
-    TMatrixD inverseSumSigmas2D_;
-    TMatrixD inverseSumSigmas3D_;
+    TMatrixD inv_sum_cov2D_; // inverted sum of covariance matrices for 2D
+    TMatrixD inv_sum_cov3D_; // inverted sum of covariance matrices for 3D
 
     vector<double> minDeltasX_;
     vector<double> minDeltasY_;
@@ -54,8 +57,12 @@ class lightJetChiSquareMinimumSolver
                             vector<double> &, vector<double> &);
 
     void calcMin();
+    inline void calcMin_2D();
+    inline void calcMin_3D();
 
     void calcSigmas();
+    inline void calcSigmas_2D();
+    inline void calcSigmas_3D();
 
     void checkSize(vector<XYZTLorentzVector> &, vector<double> &,
                    vector<double> &, vector<double> &);

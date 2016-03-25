@@ -21,81 +21,78 @@ using namespace std;
 using namespace ROOT::Math;
 typedef LorentzVector<PxPyPzE4D<double>> XYZTLorentzVector;
 
+/*
+ * Chi-square minimizer for recoiling particles
+ *
+ */
+
+struct recoil_minimizer_input {
+    vector<XYZTLorentzVector> *ps; // recoiling particles
+    vector<double> *jetPtWidths;
+    vector<double> *jetPhiWidths;
+    vector<double> *jetEtaWidths;
+
+    double *dx, *dy, *dz;
+};
+
+struct recoil_minimizer_data {
+    unsigned int n_ps;
+
+    double dxCheck, dyCheck, dzCheck;
+
+    vector<double> minDeltasX;
+    vector<double> minDeltasY;
+    vector<double> minDeltasZ;
+
+    vector<TMatrixD> cov_rad;       // covariance matrix; radial (pT, phi, eta)
+    vector<TMatrixD> cov;           // covariance matrix
+    vector<TMatrixD> inv_sum_x_cov; // cov[i] * inv_sum_cov
+
+    TMatrixD inv_sum_cov; // inverted sum of covariance matrices
+};
+
 class lightJetChiSquareMinimumSolver
 {
-
   private:
     const bool do3D_;
-    const bool debug = false;
+    const bool debug = true;
 
-    vector<double> jetPxWidths2_, jetPyWidths2_, jetPzWidths2_, jetPxPyWidths_,
-        jetPxPzWidths_, jetPyPzWidths_;
+    recoil_minimizer_input input_;
+    recoil_minimizer_data data_;
 
-    const double &dx_, &dy_, &dz_;
-    double dxCheck_, dyCheck_, dzCheck_;
-
-    vector<TMatrixD> cov2D_;           // covariance matrix for 2D case
-    vector<TMatrixD> cov3D_;           // covariance matrix for 2D case
-    vector<TMatrixD> inv_sum_x_cov2D_; // cov2D_[i] * inv_sum_cov2D_
-    vector<TMatrixD> inv_sum_x_cov3D_; // cov3D_[i] * inv_sum_cov3D_
-
-    TDecompBase *inverter2D_;
-    TDecompBase *inverter3D_;
-
-    TMatrixD inv_sum_cov2D_; // inverted sum of covariance matrices for 2D
-    TMatrixD inv_sum_cov3D_; // inverted sum of covariance matrices for 3D
-
-    vector<double> minDeltasX_;
-    vector<double> minDeltasY_;
-    vector<double> minDeltasZ_;
+    TDecompBase *inverter3D_; // matrix inverter
 
     double chi2_;
 
-    unsigned int nJets_;
-
-    void setCartesianWidths(vector<XYZTLorentzVector> &, vector<double> &,
-                            vector<double> &, vector<double> &);
-
     void calcMin();
-    inline void calcMin_2D();
-    inline void calcMin_3D();
-
-    void calcSigmas();
-    inline void calcSigmas_2D();
-    inline void calcSigmas_3D();
-
-    void checkSize(vector<XYZTLorentzVector> &, vector<double> &,
-                   vector<double> &, vector<double> &);
+    void checkSize(recoil_minimizer_input &);
+    void Eval_covariance(const recoil_minimizer_input &,
+                         recoil_minimizer_data &);
+    void Eval_cov_sum(recoil_minimizer_data &);
 
   public:
     lightJetChiSquareMinimumSolver(vector<XYZTLorentzVector> &,
                                    vector<double> &, vector<double> &,
                                    vector<double> &, double &, double &,
                                    double &, bool);
-    lightJetChiSquareMinimumSolver(int, double &, double &, double &, bool);
-
+    lightJetChiSquareMinimumSolver(const unsigned int, double &, double &,
+                                   double &, bool);
     lightJetChiSquareMinimumSolver(const lightJetChiSquareMinimumSolver &other);
+    ~lightJetChiSquareMinimumSolver();
+
+    inline void Init_data(const unsigned int &, recoil_minimizer_data &);
 
     void setupEquations(vector<XYZTLorentzVector> &, vector<double> &,
                         vector<double> &, vector<double> &);
     void printResults();
 
-    int nJets() { return nJets_; };
-
-    double jetPxWidth2(int i) { return jetPxWidths2_.at(i); };
-    double jetPyWidth2(int i) { return jetPyWidths2_.at(i); };
-    double jetPzWidth2(int i) { return jetPzWidths2_.at(i); };
-    double jetPxPyWidth(int i) { return jetPxPyWidths_.at(i); };
-    double jetPxPzWidth(int i) { return jetPxPzWidths_.at(i); };
-    double jetPyPzWidth(int i) { return jetPyPzWidths_.at(i); };
+    int nJets() { return data_.n_ps; };
 
     // void setRecoil(double , double, double );
 
-    vector<double> *getMinDeltasX() { return &minDeltasX_; };
-    vector<double> *getMinDeltasY() { return &minDeltasY_; };
-    vector<double> *getMinDeltasZ() { return &minDeltasZ_; };
-
-    ~lightJetChiSquareMinimumSolver();
+    vector<double> *getMinDeltasX() { return &data_.minDeltasX; };
+    vector<double> *getMinDeltasY() { return &data_.minDeltasY; };
+    vector<double> *getMinDeltasZ() { return &data_.minDeltasZ; };
 
     double getChiSquare();
 };

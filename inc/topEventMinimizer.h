@@ -88,7 +88,7 @@ class topEventMinimizer
 
     vector<double> nonTopObjects_PxDeltasBest_;
     vector<double> nonTopObjects_PyDeltasBest_;
-    // vector<double> nonTopObjects_PzDeltasBest_;
+    vector<double> nonTopObjects_PzDeltasBest_;
 
     // vector<pair<double, double> > WDaughterMasses_;
 
@@ -244,14 +244,14 @@ class topEventMinimizer
                        vector<double> &, vector<double> &, vector<double> &,
                        vector<double> &, vector<double> &, vector<double> &,
                        vector<double> &, vector<double> &, vector<double> &,
-                       vector<double> &);
+                       vector<double> &, vector<double> &);
 
     void getBJet(int, double &, double &, double &, double &);
     void getWDaughter1(int, double &, double &, double &, double &);
     void getWDaughter2(int, double &, double &, double &, double &);
     void getTop(int, double &, double &, double &, double &);
     void getW(int, double &, double &, double &, double &);
-    void getNonTopObject(int, double &, double &);
+    void getNonTopObject(int, double &, double &, double &);
     void getNonTopObject4(int, double &, double &, double &, double &);
 
     XYZTLorentzVector getConverter(string, int);

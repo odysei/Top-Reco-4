@@ -42,6 +42,7 @@ topEventMinimizer::topEventMinimizer(vector<XYZTLorentzVector> nonTopObjects,
 
     nonTopObjects_PxDeltasBest_ = vector<double>(nonTopObjects.size(), 0.);
     nonTopObjects_PyDeltasBest_ = vector<double>(nonTopObjects.size(), 0.);
+    nonTopObjects_PzDeltasBest_ = vector<double>(nonTopObjects.size(), 0.);
 
     initializeChiSquares();
     Initialize_minimizers(outerMin_, innerMin_);
@@ -213,6 +214,7 @@ void topEventMinimizer::setNonTopObjectCollections()
 
         nonTopObjects_PxDeltasBest_.push_back(0.);
         nonTopObjects_PyDeltasBest_.push_back(0.);
+        nonTopObjects_PzDeltasBest_.push_back(0.);
     }
 
     calcNonTopMomentum();
@@ -472,25 +474,22 @@ void topEventMinimizer::buildBestNonTopObjects()
 
     vector<double> *minJetDeltasX = nonTopChiSquare_.getMinDeltasX();
     vector<double> *minJetDeltasY = nonTopChiSquare_.getMinDeltasY();
+    vector<double> *minJetDeltasZ = nonTopChiSquare_.getMinDeltasZ();
     if (minJetDeltasX->size() != nonTopObjects_.size()) {
         cout << "bad size in light jet modification check!" << endl;
         return;
     }
-    vector<double>::iterator thisDeltaX = minJetDeltasX->begin();
-    vector<double>::iterator thisDeltaY = minJetDeltasY->begin();
-    int i(0.);
-    for (vector<XYZTLorentzVector>::iterator thisJet = nonTopObjects_.begin();
-         thisJet != nonTopObjects_.end();
-         thisJet++, thisDeltaX++, thisDeltaY++, i++) {
+    auto itx = minJetDeltasX->begin();
+    auto ity = minJetDeltasY->begin();
+    auto itz = minJetDeltasZ->begin();
+    int i = 0;
+    for (auto it = nonTopObjects_.begin(); it != nonTopObjects_.end();
+         ++it, ++itx, ++ity, ++i) {
         // cout << "This is jet number " << i+1 << endl;
-        nonTopObjects_PxDeltasBest_.at(i) = *thisDeltaX;
-        nonTopObjects_PyDeltasBest_.at(i) = *thisDeltaY;
-        // cout << "delta px = " << *thisDeltaX << endl;
-        // cout << "delta py = " << *thisDeltaY << endl;
+        nonTopObjects_PxDeltasBest_[i] = *itx;
+        nonTopObjects_PyDeltasBest_[i] = *ity;
+        nonTopObjects_PzDeltasBest_[i] = *itz;
     }
-
-    // cout << "Best dx is " << dx_ << endl;
-    // cout << "Best dy is " << dy_ << endl;
 }
 
 void topEventMinimizer::calcWDaughterEllipses()
@@ -1037,7 +1036,7 @@ void topEventMinimizer::getBestDeltas(
     vector<double> &secondWDaughterPhiDeltas,
     vector<double> &secondWDaughterEtaDeltas, vector<double> &WMassDeltas,
     vector<double> &topMassDeltas, vector<double> &nonTopObjectPxDeltas,
-    vector<double> &nonTopObjectPyDeltas)
+    vector<double> &nonTopObjectPyDeltas, vector<double> &nonTopObjectPzDeltas)
 {
     bJetPtDeltas.clear();
     bJetPhiDeltas.clear();
@@ -1057,6 +1056,7 @@ void topEventMinimizer::getBestDeltas(
 
     nonTopObjectPxDeltas.clear();
     nonTopObjectPyDeltas.clear();
+    nonTopObjectPzDeltas.clear();
 
     // cout << "Filling top object deltas" << endl;
     for (int iTop = 0; iTop < nTops_; iTop++) {
@@ -1083,10 +1083,15 @@ void topEventMinimizer::getBestDeltas(
         topMassDeltas.push_back(topMassDeltasBest_.at(iTop));
     }
 
+    const unsigned int sz = nonTopObjects_.size();
+    nonTopObjectPxDeltas.reserve(sz);
+    nonTopObjectPyDeltas.reserve(sz);
+    nonTopObjectPzDeltas.reserve(sz);
     // cout << "Now filling non-top object deltas" << endl;
-    for (int iOther = 0; iOther < int(nonTopObjects_.size()); iOther++) {
-        nonTopObjectPxDeltas.push_back(nonTopObjects_PxDeltasBest_.at(iOther));
-        nonTopObjectPyDeltas.push_back(nonTopObjects_PyDeltasBest_.at(iOther));
+    for (unsigned int i = 0; i < sz; ++i) {
+        nonTopObjectPxDeltas.push_back(nonTopObjects_PxDeltasBest_[i]);
+        nonTopObjectPyDeltas.push_back(nonTopObjects_PyDeltasBest_[i]);
+        nonTopObjectPzDeltas.push_back(nonTopObjects_PyDeltasBest_[i]);
     }
 }
 
@@ -1187,13 +1192,13 @@ double topEventMinimizer::getNonTopChiSquare()
 void topEventMinimizer::getBJet(int whichTop, double &px, double &py,
                                 double &pz, double &e)
 {
-    px = 0;
-    py = 0;
-    pz = 0;
-    e = 0;
-
-    if (whichTop >= nTops_)
+    if (whichTop >= nTops_) {
+        px = 0;
+        py = 0;
+        pz = 0;
+        e = 0;
         return;
+    }
 
     (topSystemChiSquares_.at(whichTop)).first->getBJet(px, py, pz, e);
 }
@@ -1201,13 +1206,13 @@ void topEventMinimizer::getBJet(int whichTop, double &px, double &py,
 void topEventMinimizer::getWDaughter1(int whichTop, double &px, double &py,
                                       double &pz, double &e)
 {
-    px = 0;
-    py = 0;
-    pz = 0;
-    e = 0;
-
-    if (whichTop >= nTops_)
+    if (whichTop >= nTops_) {
+        px = 0;
+        py = 0;
+        pz = 0;
+        e = 0;
         return;
+    }
 
     (topSystemChiSquares_.at(whichTop)).first->getWDaughter1(px, py, pz, e);
 }
@@ -1215,13 +1220,13 @@ void topEventMinimizer::getWDaughter1(int whichTop, double &px, double &py,
 void topEventMinimizer::getWDaughter2(int whichTop, double &px, double &py,
                                       double &pz, double &e)
 {
-    px = 0;
-    py = 0;
-    pz = 0;
-    e = 0;
-
-    if (whichTop >= nTops_)
+    if (whichTop >= nTops_) {
+        px = 0;
+        py = 0;
+        pz = 0;
+        e = 0;
         return;
+    }
 
     (topSystemChiSquares_.at(whichTop)).first->getWDaughter2(px, py, pz, e);
 }
@@ -1266,13 +1271,13 @@ XYZTLorentzVector topEventMinimizer::getConverter(string whichFunc,
 void topEventMinimizer::getTop(int whichTop, double &px, double &py, double &pz,
                                double &e)
 {
-    px = 0;
-    py = 0;
-    pz = 0;
-    e = 0;
-
-    if (whichTop >= nTops_)
+    if (whichTop >= nTops_) {
+        px = 0;
+        py = 0;
+        pz = 0;
+        e = 0;
         return;
+    }
 
     (topSystemChiSquares_.at(whichTop)).first->getTopMomentum(px, py, pz, e);
 }
@@ -1280,13 +1285,13 @@ void topEventMinimizer::getTop(int whichTop, double &px, double &py, double &pz,
 void topEventMinimizer::getW(int whichTop, double &px, double &py, double &pz,
                              double &e)
 {
-    px = 0;
-    py = 0;
-    pz = 0;
-    e = 0;
-
-    if (whichTop >= nTops_)
+    if (whichTop >= nTops_) {
+        px = 0;
+        py = 0;
+        pz = 0;
+        e = 0;
         return;
+    }
 
     double px1, py1, pz1, e1;
     double px2, py2, pz2, e2;
@@ -1300,38 +1305,43 @@ void topEventMinimizer::getW(int whichTop, double &px, double &py, double &pz,
     e = e1 + e2;
 }
 
-void topEventMinimizer::getNonTopObject(int whichObject, double &px, double &py)
+void topEventMinimizer::getNonTopObject(int whichObject, double &px, double &py,
+                                        double &pz)
 {
-    px = 0;
-    py = 0;
-
-    if (whichObject >= (int)nonTopObjects_.size())
+    if (whichObject >= (int)nonTopObjects_.size()) {
+        px = 0;
+        py = 0;
+        pz = 0;
         return;
+    }
 
-    px = nonTopObjects_.at(whichObject).Px() +
-         nonTopObjects_PxDeltasBest_.at(whichObject);
-    py = nonTopObjects_.at(whichObject).Py() +
-         nonTopObjects_PyDeltasBest_.at(whichObject);
+    px = nonTopObjects_[whichObject].Px() +
+         nonTopObjects_PxDeltasBest_[whichObject];
+    py = nonTopObjects_[whichObject].Py() +
+         nonTopObjects_PyDeltasBest_[whichObject];
+    pz = nonTopObjects_[whichObject].Pz() +
+         nonTopObjects_PzDeltasBest_[whichObject];
 }
 
 void topEventMinimizer::getNonTopObject4(int whichObject, double &px,
                                          double &py, double &pz, double &e)
 {
-    px = 0;
-    py = 0;
-    pz = 0;
-    e = 0;
-
-    if (whichObject >= (int)nonTopObjects_.size())
+    if (whichObject >= (int)nonTopObjects_.size()) {
+        px = 0;
+        py = 0;
+        pz = 0;
+        e = 0;
         return;
+    }
 
-    px = nonTopObjects_.at(whichObject).Px() +
-         nonTopObjects_PxDeltasBest_.at(whichObject);
-    py = nonTopObjects_.at(whichObject).Py() +
-         nonTopObjects_PyDeltasBest_.at(whichObject);
-    pz = nonTopObjects_.at(whichObject).Pz();
-    e = sqrt(pow(nonTopObjects_.at(whichObject).M(), 2) + pow(px, 2) +
-             pow(py, 2) + pow(pz, 2));
+    px = nonTopObjects_[whichObject].Px() +
+         nonTopObjects_PxDeltasBest_[whichObject];
+    py = nonTopObjects_[whichObject].Py() +
+         nonTopObjects_PyDeltasBest_[whichObject];
+    pz = nonTopObjects_[whichObject].Pz() +
+         nonTopObjects_PzDeltasBest_[whichObject];
+    e = sqrt(pow(nonTopObjects_[whichObject].M(), 2) + pow(px, 2) + pow(py, 2) +
+             pow(pz, 2));
 }
 
 void topEventMinimizer::plotEllipses(TString plotName)

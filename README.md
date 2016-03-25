@@ -59,11 +59,26 @@ Given a point on the second W daughter ellipse, defined by an angle theta, calcu
 
 ### lightJetMinimumChiSquareSolver
 
-In the Betchart paper, the addition of a MET constraint is equivalent to requiring that the two neutrino ellipses intersect. This can be achieved by varying within their resolutions all the objects present in the event that are not associated with the top quarks. At a hadron collider these would be light jets. 
-Note: could in theory also apply to leptons, but since these are so well measured at the LHC we simply focus on jets. However the code can deal with non-zero lepton resolutions, see below the topEventMinimizer method setNonTopObjectCollections which are input to the lightJetMinimumChiSquareSolver class.
-In the general case we want the non-top objects to exactly cancel the momentum imbalance from the decay of the top quarks.
+In the Betchart paper, the addition of a MET constraint is equivalent to
+requiring that the two neutrino ellipses intersect. This can be achieved by
+varying within their resolutions all the objects present in the event that are
+not associated with the top quarks. At a hadron collider these would be light
+jets. 
+Note: could in theory also apply to leptons, but since these are so well
+measured at the LHC we simply focus on jets. However the code can deal with
+non-zero lepton resolutions, see below the topEventMinimizer method
+setNonTopObjectCollections which are input to the lightJetMinimumChiSquareSolver
+class.
+In the general case we want the non-top objects to exactly cancel the momentum
+imbalance from the decay of the top quarks.
 
-We can write and minimize a chi square variable representing the distance between the measured and the corrected light jets which make the ellipses intersect. Transforming from polar to cartesian coordinates yields an analytic solution for the minimum by inverting a covariance matrix of the sum of all the object resolutions. The purpose of this class, given an input collection of objects and their resolutions, is to calculate the minimum and corresponding corrections to the objects.
+We can write and minimize a chi square variable representing the distance
+between the measured and the corrected light jets which make the ellipses
+intersect. Transforming from polar to cartesian coordinates yields an analytic
+solution for the minimum by inverting a covariance matrix of the sum of all the
+object resolutions. The purpose of this class, given an input collection of
+objects and their resolutions, is to calculate the minimum and corresponding
+corrections to the objects.
 
 #### Constructor
 
@@ -80,26 +95,35 @@ There are two constructors, which require different inputs.
 - number of lights jets
 - coordinates (2D or 3D) of the momentum imbalance to cancel
 
-In both cases the momentum imbalance vector is passed by reference, in order to allow for changes (as the other objects in the event are allowed to vary, the sum of top momenta will also vary).
+In both cases the momentum imbalance vector is passed by reference, in order
+toallow for changes (as the other objects in the event are allowed to vary, the
+sum of top momenta will also vary).
 
 #### Methods of interest
 
-- setCartesianWidths
-Transform from polar (pT, phi, eta) to Cartesian widths (px, py, pz).
+- Eval_covariance()
+Produces covariance matrix in cartesian and polar/spherical coordinates
+based on polar (pT, phi, eta) input.
 
-- calcSigmas
-Once the light jet object collections have been set, calculate the global covariance matrix and invert it. This method only needs to be called once per event!
+- Eval_cov_sum()
+Once the light jet object collections have been set, calculate the
+globalcovariance matrix and invert it. This method only needs to be called once
+per event!
 
-- setupEquations
-In case the second constructor was used, pass in the vectors of non-top object four-momenta and resolutions. Calls setCartesianWidths and calcSigmas.
+- setupEquations()
+In case the second constructor was used, pass in the vectors of non-top
+objectfour-momenta and resolutions. Calls setCartesianWidths and calcSigmas.
 
-- calcMin
-Calculate the vector of deltas (corrections to the light jets) defined in Eq. C.7, i.e., calculate the B_i matrices and multiply by the displacement vector. From the vector of deltas, calculate the chi square. This method needs to be called only when the displacement vector changes.
+- calcMin()
+Calculate the vector of deltas (corrections to the light jets) defined in
+Eq.C.7, i.e., calculate the B_i matrices and multiply by the displacement
+vector. From the vector of deltas, calculate the chi square. This method needs
+to be called only when the displacement vector changes.
 
-- getChiSquare
+- getChiSquare()
 Calls calcMin and returns the minimum of the chi square.
 
-- getMinDeltasX/Y/Z
+- getMinDeltasX/Y/Z()
 Returns a vector of px/py/pz deltas at the minimum of the chi square.
 
 ### topSystemChiSquare

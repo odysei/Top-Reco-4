@@ -140,7 +140,7 @@ class topEventMinimizer
     void Initialize_minimizers(ROOT::Math::Minimizer *&outer,
                                ROOT::Math::Minimizer *&inner);
 
-    void setRecoil(double, double, double);
+    void setRecoil(const double, const double, const double);
 
     void calcWDaughterEllipses();
 
@@ -149,7 +149,7 @@ class topEventMinimizer
 
     void buildBestNonTopObjects();
 
-    void setupNonTopChiSquare();
+    inline void Calc_nont_chi2();
 
     void calcHadronicChiSquare();
     void calcTopMassChiSquare();

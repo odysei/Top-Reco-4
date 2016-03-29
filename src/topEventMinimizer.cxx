@@ -99,11 +99,11 @@ topEventMinimizer::topEventMinimizer(
 
     // make the tops
     for (int iTop = 0; iTop < (int)bJets.size(); iTop++) {
-        if (isLeptonicTopDecay.at(iTop)) {
-            addLeptonicTop(bJets.at(iTop), firstWDaughters.at(iTop));
+        if (isLeptonicTopDecay[iTop]) {
+            addLeptonicTop(bJets[iTop], firstWDaughters[iTop]);
         } else {
-            addHadronicTop(bJets.at(iTop), firstWDaughters.at(iTop),
-                           secondWDaughters.at(iTop));
+            addHadronicTop(bJets[iTop], firstWDaughters[iTop],
+                           secondWDaughters[iTop]);
         }
     }
 
@@ -385,7 +385,7 @@ void topEventMinimizer::addLeptonicTop(int ibJet, int iWDaughter1)
 {
     topSystemChiSquares_.push_back(
         make_pair(makeLeptonicTop(ibJet, iWDaughter1), true));
-    nTops_ += 1;
+    ++nTops_;
 }
 
 void topEventMinimizer::addLeptonicTop(
@@ -403,8 +403,7 @@ void topEventMinimizer::addLeptonicTop(
                         WDaughter1EtaWidth, WDaughter1PhiWidth, mTop, sigmaMTop,
                         mW, sigmaMW),
         true));
-
-    nTops_ += 1;
+    ++nTops_;
 }
 
 void topEventMinimizer::addHadronicTop(int ibJet, int iWDaughter1,
@@ -412,7 +411,7 @@ void topEventMinimizer::addHadronicTop(int ibJet, int iWDaughter1,
 {
     topSystemChiSquares_.push_back(
         make_pair(makeHadronicTop(ibJet, iWDaughter1, iWDaughter2), false));
-    nTops_ += 1;
+    ++nTops_;
 }
 
 void topEventMinimizer::addHadronicTop(
@@ -434,7 +433,7 @@ void topEventMinimizer::addHadronicTop(
                         WDaughter2PtWidth, WDaughter2EtaWidth,
                         WDaughter2PhiWidth, mTop, sigmaMTop, mW, sigmaMW),
         false));
-    nTops_ += 1;
+    ++nTops_;
 }
 
 void topEventMinimizer::printTopConstituents()
@@ -460,11 +459,11 @@ void topEventMinimizer::calcTopMassRanges()
 
 void topEventMinimizer::printNonTopObjects()
 {
-    for (int iObj = 0; iObj < int(nonTopObjects_.size()); iObj++) {
-        cout << "Light jet " << iObj + 1
-             << "\npx = " << nonTopObjects_.at(iObj).Px()
-             << "\npy = " << nonTopObjects_.at(iObj).Py()
-             << "\npz = " << nonTopObjects_.at(iObj).Pz() << endl;
+    for (unsigned int i = 0; i < nonTopObjects_.size(); ++i) {
+        cout << "Light jet " << i + 1
+             << "\npx = " << nonTopObjects_[i].Px()
+             << "\npy = " << nonTopObjects_[i].Py()
+             << "\npz = " << nonTopObjects_[i].Pz() << endl;
     }
 }
 
@@ -495,13 +494,12 @@ void topEventMinimizer::buildBestNonTopObjects()
 void topEventMinimizer::calcWDaughterEllipses()
 {
     int iTop = 0;
-    for (vector<pair<topSystemChiSquare *, bool>>::const_iterator
-             thisTopChiSquare = topSystemChiSquares_.begin();
-         thisTopChiSquare != topSystemChiSquares_.end();
-         thisTopChiSquare++, iTop++) {
+    for (auto it = topSystemChiSquares_.begin();
+         it != topSystemChiSquares_.end();
+         ++it, ++iTop) {
         // cout << "Calculating second W daughter ellipse for top number " <<
         // iTop+1 << endl;
-        (*thisTopChiSquare).first->calcWDaughter2Ellipse();
+        (*it).first->calcWDaughter2Ellipse();
     }
 }
 
@@ -511,20 +509,21 @@ void topEventMinimizer::calcNonTopMomentum()
     nonTopPy_ = 0;
     nonTopPz_ = 0;
 
-    for (int iObj = 0; iObj < int(nonTopObjects_.size()); iObj++) {
-        nonTopPx_ += nonTopObjects_.at(iObj).Px();
-        nonTopPy_ += nonTopObjects_.at(iObj).Py();
-        nonTopPz_ += nonTopObjects_.at(iObj).Pz();
+    for (unsigned int i = 0; i < nonTopObjects_.size(); ++i) {
+        nonTopPx_ += nonTopObjects_[i].Px();
+        nonTopPy_ += nonTopObjects_[i].Py();
+        nonTopPz_ += nonTopObjects_[i].Pz();
     }
 }
 
-void topEventMinimizer::setupNonTopChiSquare()
+inline void topEventMinimizer::Calc_nont_chi2()
 {
     getDxDyFromEllipses();
     nonTopChi2_ = nonTopChiSquare_.getChiSquare();
 }
 
-void topEventMinimizer::setRecoil(double px, double py, double pz)
+void topEventMinimizer::setRecoil(const double px, const double py,
+                                  const double pz)
 {
     dx_ = -1. * px;
     dy_ = -1. * py;
@@ -543,29 +542,27 @@ void topEventMinimizer::getDxDyFromEllipses()
     double topE = 0.;
 
     int iTop = 0;
-
-    for (vector<pair<topSystemChiSquare *, bool>>::const_iterator
-             thisTopChiSquare = topSystemChiSquares_.begin();
-         thisTopChiSquare != topSystemChiSquares_.end();
-         thisTopChiSquare++, iTop++) {
+    for (auto it = topSystemChiSquares_.begin();
+         it != topSystemChiSquares_.end();
+         ++it, ++iTop) {
         // cout << "This is top number " << iTop+1 << endl;
 
         // Add this top momentum to sum
-        (*thisTopChiSquare).first->getTopMomentum(topPx, topPy, topPz, topE);
+        (*it).first->getTopMomentum(topPx, topPy, topPz, topE);
         sumTopPx += topPx;
         sumTopPy += topPy;
         sumTopPz += topPz;
 
         // If the top decays hadronically, calculate the second W daughter (jet)
         // deltas at this point on the ellipse
-        if (!((*thisTopChiSquare).second)) {
-            (*thisTopChiSquare).first->calcWDaughter2Deltas();
+        if (!((*it).second)) {
+            (*it).first->calcWDaughter2Deltas();
         }
     }
 
-    double sumDeltaTopPx = sumTopPx - totalTopPx_;
-    double sumDeltaTopPy = sumTopPy - totalTopPy_;
-    double sumDeltaTopPz = sumTopPz - totalTopPz_;
+    const double sumDeltaTopPx = sumTopPx - totalTopPx_;
+    const double sumDeltaTopPy = sumTopPy - totalTopPy_;
+    const double sumDeltaTopPz = sumTopPz - totalTopPz_;
     // setRecoil(sumTopPx, sumTopPy, sumTopPz);
     setRecoil(sumDeltaTopPx, sumDeltaTopPy, sumDeltaTopPz);
 }
@@ -576,30 +573,28 @@ void topEventMinimizer::findStartingValues(int nPoints)
     // deltas" << endl;
 
     double startingChi2 = 1.e9;
-    double twoPiOverN = 2. * 3.14159265359 / (double)nPoints;
-    int whichTop, step;
-    double angle;
+    const double twoPiOverN = 2. * 3.14159265359 / (double)nPoints;
     vector<double> angles;
+    angles.resize(nTops_, 0);
     // next 3 lines is my addition
     ellipseAngles_.clear();
-    ellipseAngles_.push_back(0.);
-    ellipseAngles_.push_back(0.);
+    ellipseAngles_.resize(2, 0);
 
     calcWDaughterEllipses();
 
     // cout << "Beginning loop over all possible angle combinations" << endl;
 
-    for (int i = 0; i < pow(nPoints, nTops_); i++) {
-        whichTop = 1;
-        angles.clear();
-        for (int j = 0; j < nTops_; j++) {
-            step = (i / whichTop) % nPoints;
-            angle = twoPiOverN * step;
+    const int times = pow(nPoints, nTops_);
+    for (int i = 0; i < times; ++i) {
+        int whichTop = 1;
+        for (int j = 0; j < nTops_; ++j) {
+            const int step = (i / whichTop) % nPoints;
+            const double angle = twoPiOverN * step;
             // cout << "Setting angle for top " << j+1 << " to " << angle <<
             // endl;
-            (topSystemChiSquares_.at(j)).first->setEllipseAngle(angle);
+            topSystemChiSquares_[j].first->setEllipseAngle(angle);
             whichTop *= nPoints;
-            angles.push_back(angle);
+            angles[j] = angle;
         }
         getDxDyFromEllipses();
 
@@ -618,14 +613,13 @@ void topEventMinimizer::findStartingValues(int nPoints)
     // endl;
 
     // set angles corresponding to minimum chi^2
-    for (int iTop = 0; iTop < nTops_; iTop++) {
-        // cout<<ellipseAngles_.at(iTop)<<endl;
-        (topSystemChiSquares_.at(iTop))
-            .first->setEllipseAngle(ellipseAngles_.at(iTop));
+    for (int iTop = 0; iTop < nTops_; ++iTop) {
+        // cout<<ellipseAngles_[iTop]<<endl;
+        topSystemChiSquares_[iTop].first->setEllipseAngle(ellipseAngles_[iTop]);
     }
 
     // cout<<"before setup"<<endl;
-    setupNonTopChiSquare();
+    Calc_nont_chi2();
     // cout<<"before calc hadchi"<<endl;
     calcHadronicChiSquare();
 
@@ -639,28 +633,27 @@ double topEventMinimizer::innerMinimizationOperator(const double *inputDeltas)
     // printTopConstituents();
     vector<double> ellipseAnglesCurrent;
     vector<double> topMassDeltasCurrent;
+    ellipseAnglesCurrent.reserve(topSystemChiSquares_.size());
+    topMassDeltasCurrent.reserve(topSystemChiSquares_.size());
 
     int i = 0, iTop = 0;
-
-    for (vector<pair<topSystemChiSquare *, bool>>::const_iterator
-             thisTopChiSquare = topSystemChiSquares_.begin();
-         thisTopChiSquare != topSystemChiSquares_.end();
-         thisTopChiSquare++, iTop++) {
+    for (auto it = topSystemChiSquares_.begin();
+         it !=  topSystemChiSquares_.end(); ++it, ++iTop) {
         ellipseAnglesCurrent.push_back(inputDeltas[i]);
-        (*thisTopChiSquare).first->setEllipseAngle(inputDeltas[i]);
-        i += 1;
+        (*it).first->setEllipseAngle(inputDeltas[i]);
+        ++i;
 
         topMassDeltasCurrent.push_back(inputDeltas[i]);
-        (*thisTopChiSquare).first->setTopMassDelta(inputDeltas[i]);
-        topMassDeltas_.at(iTop) = inputDeltas[i];
-        i += 1;
+        (*it).first->setTopMassDelta(inputDeltas[i]);
+        topMassDeltas_[iTop] = inputDeltas[i];
+        ++i;
 
         // if ((*thisTopChiSquare).second == false){
         //    (*thisTopChiSquare).first->printWDaughter2();
         //}
     }
 
-    setupNonTopChiSquare();
+    Calc_nont_chi2();
     calcHadronicChiSquare();
     calcTopMassChiSquare();
     double innerChi2 = nonTopChi2_ + hadChi2_ + topMassChi2_;
@@ -719,7 +712,7 @@ void topEventMinimizer::minimizeNonTopChiSquare()
         // top mass delta
         bool hasHighEdge;
         double deltaMTopRangeLow, deltaMTopRangeHigh;
-        (topSystemChiSquares_.at(iTop))
+        (topSystemChiSquares_[iTop])
             .first->getTopMassDeltaRange(hasHighEdge, deltaMTopRangeLow,
                                          deltaMTopRangeHigh);
         deltaMTopRangeHigh =
@@ -727,19 +720,19 @@ void topEventMinimizer::minimizeNonTopChiSquare()
         parName = "deltaMTop_";
         parName += iTop;
         if (hasHighEdge) {
-            // cout << "Current top mass delta is " << topMassDeltas_.at(iTop)
+            // cout << "Current top mass delta is " << topMassDeltas_[iTop]
             // << endl;
             // cout << "deltaMTop range is " << deltaMTopRangeLow << " to " <<
             // deltaMTopRangeHigh << endl;
             innerMin_->SetLimitedVariable(
-                iPar, string(parName), topMassDeltas_.at(iTop), 0.1,
+                iPar, string(parName), topMassDeltas_[iTop], 0.1,
                 deltaMTopRangeLow, deltaMTopRangeHigh);
         } else {
-            // cout << "Current top mass delta is " << topMassDeltas_.at(iTop)
+            // cout << "Current top mass delta is " << topMassDeltas_[iTop]
             // << endl;
             // cout << "deltaMTop lower edge is "<< deltaMTopRangeLow << endl;
             innerMin_->SetLowerLimitedVariable(iPar, string(parName),
-                                               topMassDeltas_.at(iTop), 0.1,
+                                               topMassDeltas_[iTop], 0.1,
                                                deltaMTopRangeLow);
         }
         iPar += 1;
@@ -758,19 +751,19 @@ void topEventMinimizer::minimizeNonTopChiSquare()
     for (int iTop = 0; iTop < nTops_; iTop++) {
         // ellipse angle
         ellipseAngles_[iTop] = innerMin_->X()[iPar];
-        (topSystemChiSquares_.at(iTop))
-            .first->setEllipseAngle(ellipseAnglesInnerBest_.at(iTop));
+        (topSystemChiSquares_[iTop])
+            .first->setEllipseAngle(ellipseAnglesInnerBest_[iTop]);
         iPar += 1;
 
         // top mass delta
-        topMassDeltas_.at(iTop) = innerMin_->X()[iPar];
-        (topSystemChiSquares_.at(iTop))
-            .first->setTopMassDelta(topMassDeltasInnerBest_.at(iTop));
+        topMassDeltas_[iTop] = innerMin_->X()[iPar];
+        (topSystemChiSquares_[iTop])
+            .first->setTopMassDelta(topMassDeltasInnerBest_[iTop]);
         iPar += 1;
     }
 
     // Recalculate chi^2 at the minimum from the best delta values
-    setupNonTopChiSquare();
+    Calc_nont_chi2();
     calcHadronicChiSquare();
     calcTopMassChiSquare();
 
@@ -805,13 +798,13 @@ double topEventMinimizer::outerMinimizationOperator(const double *inputDeltas)
                                inputDeltas[i + 5], // first W daughter deltas
                                inputDeltas[i + 6]  // W mass delta
                                );
-        bJets_PtDeltas_.at(iTop) = inputDeltas[i];
-        bJets_PhiDeltas_.at(iTop) = inputDeltas[i + 1];
-        bJets_EtaDeltas_.at(iTop) = inputDeltas[i + 2];
-        firstWDaughters_PtDeltas_.at(iTop) = inputDeltas[i + 3];
-        firstWDaughters_PhiDeltas_.at(iTop) = inputDeltas[i + 4];
-        firstWDaughters_EtaDeltas_.at(iTop) = inputDeltas[i + 5];
-        WMassDeltas_.at(iTop) = inputDeltas[i + 6];
+        bJets_PtDeltas_[iTop] = inputDeltas[i];
+        bJets_PhiDeltas_[iTop] = inputDeltas[i + 1];
+        bJets_EtaDeltas_[iTop] = inputDeltas[i + 2];
+        firstWDaughters_PtDeltas_[iTop] = inputDeltas[i + 3];
+        firstWDaughters_PhiDeltas_[iTop] = inputDeltas[i + 4];
+        firstWDaughters_EtaDeltas_[iTop] = inputDeltas[i + 5];
+        WMassDeltas_[iTop] = inputDeltas[i + 6];
 
         // std::cout<<"after set stuff"<<std::endl;
         // Calculate the top mass range:
@@ -888,31 +881,31 @@ void topEventMinimizer::minimizeTotalChiSquare()
         convert << iTop;
         const string iTop_str = convert.str();
         const string par1 = "bJetPtDelta_" + iTop_str;
-        outerMin_->SetLimitedVariable(iPar, par1, bJets_PtDeltas_.at(iTop), 0.1,
+        outerMin_->SetLimitedVariable(iPar, par1, bJets_PtDeltas_[iTop], 0.1,
                                       -max, max);
         ++iPar;
         const string par2 = "bJetPhiDelta_" + iTop_str;
-        outerMin_->SetLimitedVariable(iPar, par2, bJets_PhiDeltas_.at(iTop),
+        outerMin_->SetLimitedVariable(iPar, par2, bJets_PhiDeltas_[iTop],
                                       0.1, -max, max);
         ++iPar;
         const string par3 = "bJetEtaDelta_" + iTop_str;
-        outerMin_->SetLimitedVariable(iPar, par3, bJets_EtaDeltas_.at(iTop),
+        outerMin_->SetLimitedVariable(iPar, par3, bJets_EtaDeltas_[iTop],
                                       0.1, -max, max);
         ++iPar;
         const string par4 = "WDaughter1PtDelta_" + iTop_str;
         outerMin_->SetLimitedVariable(
-            iPar, par4, firstWDaughters_PtDeltas_.at(iTop), 0.1, -max, max);
+            iPar, par4, firstWDaughters_PtDeltas_[iTop], 0.1, -max, max);
         ++iPar;
         const string par5 = "WDaughter1PhiDelta_" + iTop_str;
         outerMin_->SetLimitedVariable(
-            iPar, par5, firstWDaughters_PhiDeltas_.at(iTop), 0.1, -max, max);
+            iPar, par5, firstWDaughters_PhiDeltas_[iTop], 0.1, -max, max);
         ++iPar;
         const string par6 = "WDaughter1EtaDelta_" + iTop_str;
         outerMin_->SetLimitedVariable(
-            iPar, par6, firstWDaughters_EtaDeltas_.at(iTop), 0.1, -max, max);
+            iPar, par6, firstWDaughters_EtaDeltas_[iTop], 0.1, -max, max);
         ++iPar;
         const string par7 = "deltaMW_" + iTop_str;
-        outerMin_->SetLimitedVariable(iPar, par7, WMassDeltas_.at(iTop), 0.1,
+        outerMin_->SetLimitedVariable(iPar, par7, WMassDeltas_[iTop], 0.1,
                                       -max, max);
         ++iPar;
     }
@@ -962,54 +955,51 @@ void topEventMinimizer::setBestValues()
     // found: " << chi2Best_ << endl;
 
     int iTop = 0;
-    for (vector<pair<topSystemChiSquare *, bool>>::const_iterator
-             thisTopChiSquare = topSystemChiSquares_.begin();
-         thisTopChiSquare != topSystemChiSquares_.end();
-         thisTopChiSquare++, iTop++) {
+    for (auto it = topSystemChiSquares_.begin();
+         it != topSystemChiSquares_.end();
+         ++it, ++iTop) {
         // cout << "This is top number " << iTop+1 << endl;
-        // cout << "b-jet pt delta  = " << bJets_PtDeltasBest_ .at(iTop) <<
+        // cout << "b-jet pt delta  = " << bJets_PtDeltasBest_ [iTop] <<
         // endl;
-        // cout << "b-jet phi delta = " << bJets_PhiDeltasBest_.at(iTop) <<
+        // cout << "b-jet phi delta = " << bJets_PhiDeltasBest_[iTop] <<
         // endl;
-        // cout << "b-jet eta delta = " << bJets_EtaDeltasBest_.at(iTop) <<
+        // cout << "b-jet eta delta = " << bJets_EtaDeltasBest_[iTop] <<
         // endl;
         // cout << "first W daughter pt delta  = " <<
-        // firstWDaughters_PtDeltasBest_ .at(iTop) << endl;
+        // firstWDaughters_PtDeltasBest_ [iTop] << endl;
         // cout << "first W daughter phi delta = " <<
-        // firstWDaughters_PhiDeltasBest_.at(iTop) << endl;
+        // firstWDaughters_PhiDeltasBest_[iTop] << endl;
         // cout << "first W daughter eta delta = " <<
-        // firstWDaughters_EtaDeltasBest_.at(iTop) << endl;
-        // cout << "W   mass delta = " << WMassDeltasBest_  .at(iTop) << endl;
-        // cout << "Top mass delta = " << topMassDeltasBest_.at(iTop) << endl;
+        // firstWDaughters_EtaDeltasBest_[iTop] << endl;
+        // cout << "W   mass delta = " << WMassDeltasBest_  [iTop] << endl;
+        // cout << "Top mass delta = " << topMassDeltasBest_[iTop] << endl;
         // cout << "Second W daughter ellipse angle = " <<
-        // ellipseAnglesBest_.at(iTop) << endl;
+        // ellipseAnglesBest_[iTop] << endl;
 
-        (*thisTopChiSquare).first->setTopMassDelta(topMassDeltasBest_.at(iTop));
-        (*thisTopChiSquare)
-            .first->setDeltas(bJets_PtDeltasBest_.at(iTop),
-                              bJets_PhiDeltasBest_.at(iTop),
-                              bJets_EtaDeltasBest_.at(iTop),
-                              firstWDaughters_PtDeltasBest_.at(iTop),
-                              firstWDaughters_PhiDeltasBest_.at(iTop),
-                              firstWDaughters_EtaDeltasBest_.at(iTop),
-                              WMassDeltasBest_.at(iTop));
+        (*it).first->setTopMassDelta(topMassDeltasBest_[iTop]);
+        (*it).first->setDeltas(bJets_PtDeltasBest_[iTop],
+                               bJets_PhiDeltasBest_[iTop],
+                               bJets_EtaDeltasBest_[iTop],
+                               firstWDaughters_PtDeltasBest_[iTop],
+                               firstWDaughters_PhiDeltasBest_[iTop],
+                               firstWDaughters_EtaDeltasBest_[iTop],
+                               WMassDeltasBest_[iTop]);
 
-        (*thisTopChiSquare).first->setupWDaughter2Ellipse();
-        (*thisTopChiSquare).first->calcWDaughter2Ellipse();
-        (*thisTopChiSquare).first->setEllipseAngle(ellipseAnglesBest_.at(iTop));
+        (*it).first->setupWDaughter2Ellipse();
+        (*it).first->calcWDaughter2Ellipse();
+        (*it).first->setEllipseAngle(ellipseAnglesBest_[iTop]);
 
         double ptDelta, phiDelta, etaDelta;
-        (*thisTopChiSquare)
-            .first->getWDaughter2Deltas(ptDelta, phiDelta, etaDelta);
-        secondWDaughters_PtDeltasBest_.at(iTop) = ptDelta;
-        secondWDaughters_PhiDeltasBest_.at(iTop) = phiDelta;
-        secondWDaughters_EtaDeltasBest_.at(iTop) = etaDelta;
+        (*it).first->getWDaughter2Deltas(ptDelta, phiDelta, etaDelta);
+        secondWDaughters_PtDeltasBest_[iTop] = ptDelta;
+        secondWDaughters_PhiDeltasBest_[iTop] = phiDelta;
+        secondWDaughters_EtaDeltasBest_[iTop] = etaDelta;
         // cout << "second W daugther pt  delta is " << ptDelta  << endl;
         // cout << "second W daugther eta delta is " << etaDelta << endl;
         // cout << "second W daugther phi delta is " << phiDelta << endl;
     }
 
-    setupNonTopChiSquare();
+    Calc_nont_chi2();
     calcHadronicChiSquare();
     calcTopMassChiSquare();
     calcTopChiSquare();
@@ -1038,117 +1028,105 @@ void topEventMinimizer::getBestDeltas(
     vector<double> &topMassDeltas, vector<double> &nonTopObjectPxDeltas,
     vector<double> &nonTopObjectPyDeltas, vector<double> &nonTopObjectPzDeltas)
 {
-    bJetPtDeltas.clear();
-    bJetPhiDeltas.clear();
-    bJetEtaDeltas.clear();
+    const unsigned int n_t = nTops_;
+    bJetPtDeltas.resize(n_t);
+    bJetPhiDeltas.resize(n_t);
+    bJetEtaDeltas.resize(n_t);
 
-    firstWDaughterPtDeltas.clear();
-    firstWDaughterPhiDeltas.clear();
-    firstWDaughterEtaDeltas.clear();
+    firstWDaughterPtDeltas.resize(n_t);
+    firstWDaughterPhiDeltas.resize(n_t);
+    firstWDaughterEtaDeltas.resize(n_t);
 
-    secondWDaughterPtDeltas.clear();
-    secondWDaughterPhiDeltas.clear();
-    secondWDaughterEtaDeltas.clear();
+    secondWDaughterPtDeltas.resize(n_t);
+    secondWDaughterPhiDeltas.resize(n_t);
+    secondWDaughterEtaDeltas.resize(n_t);
 
-    WMassDeltas.clear();
+    WMassDeltas.resize(n_t);
 
-    topMassDeltas.clear();
-
-    nonTopObjectPxDeltas.clear();
-    nonTopObjectPyDeltas.clear();
-    nonTopObjectPzDeltas.clear();
+    topMassDeltas.resize(n_t);
 
     // cout << "Filling top object deltas" << endl;
-    for (int iTop = 0; iTop < nTops_; iTop++) {
-        bJetPtDeltas.push_back(bJets_PtDeltasBest_.at(iTop));
-        bJetPhiDeltas.push_back(bJets_PhiDeltasBest_.at(iTop));
-        bJetEtaDeltas.push_back(bJets_EtaDeltasBest_.at(iTop));
+    for (unsigned int i = 0; i < n_t; ++i) {
+        bJetPtDeltas[i] = bJets_PtDeltasBest_[i];
+        bJetPhiDeltas[i] = bJets_PhiDeltasBest_[i];
+        bJetEtaDeltas[i] = bJets_EtaDeltasBest_[i];
 
-        firstWDaughterPtDeltas.push_back(
-            firstWDaughters_PtDeltasBest_.at(iTop));
-        firstWDaughterPhiDeltas.push_back(
-            firstWDaughters_PhiDeltasBest_.at(iTop));
-        firstWDaughterEtaDeltas.push_back(
-            firstWDaughters_EtaDeltasBest_.at(iTop));
+        firstWDaughterPtDeltas[i] = firstWDaughters_PtDeltasBest_[i];
+        firstWDaughterPhiDeltas[i] = firstWDaughters_PhiDeltasBest_[i];
+        firstWDaughterEtaDeltas[i] = firstWDaughters_EtaDeltasBest_[i];
 
-        secondWDaughterPtDeltas.push_back(
-            secondWDaughters_PtDeltasBest_.at(iTop));
-        secondWDaughterPhiDeltas.push_back(
-            secondWDaughters_PhiDeltasBest_.at(iTop));
-        secondWDaughterEtaDeltas.push_back(
-            secondWDaughters_EtaDeltasBest_.at(iTop));
+        secondWDaughterPtDeltas[i] = secondWDaughters_PtDeltasBest_[i];
+        secondWDaughterPhiDeltas[i] = secondWDaughters_PhiDeltasBest_[i];
+        secondWDaughterEtaDeltas[i] = secondWDaughters_EtaDeltasBest_[i];
 
-        WMassDeltas.push_back(WMassDeltasBest_.at(iTop));
+        WMassDeltas[i] = WMassDeltasBest_[i];
 
-        topMassDeltas.push_back(topMassDeltasBest_.at(iTop));
+        topMassDeltas[i] = topMassDeltasBest_[i];
     }
 
     const unsigned int sz = nonTopObjects_.size();
-    nonTopObjectPxDeltas.reserve(sz);
-    nonTopObjectPyDeltas.reserve(sz);
-    nonTopObjectPzDeltas.reserve(sz);
+    nonTopObjectPxDeltas.resize(sz);
+    nonTopObjectPyDeltas.resize(sz);
+    nonTopObjectPzDeltas.resize(sz);
     // cout << "Now filling non-top object deltas" << endl;
     for (unsigned int i = 0; i < sz; ++i) {
-        nonTopObjectPxDeltas.push_back(nonTopObjects_PxDeltasBest_[i]);
-        nonTopObjectPyDeltas.push_back(nonTopObjects_PyDeltasBest_[i]);
-        nonTopObjectPzDeltas.push_back(nonTopObjects_PyDeltasBest_[i]);
+        nonTopObjectPxDeltas[i] = nonTopObjects_PxDeltasBest_[i];
+        nonTopObjectPyDeltas[i] = nonTopObjects_PyDeltasBest_[i];
+        nonTopObjectPzDeltas[i] = nonTopObjects_PyDeltasBest_[i];
     }
 }
 
 double topEventMinimizer::getOneTopMassChiSquare(int iTop)
 {
-    return (topSystemChiSquares_.at(iTop)).first->getTopMassChiSquare();
+    return (topSystemChiSquares_[iTop]).first->getTopMassChiSquare();
 }
 
 double topEventMinimizer::getOneBChiSquare(int iTop)
 {
     // cout<<"inside getonebchiSquare"<<endl;
-    double toreturn = (topSystemChiSquares_.at(iTop)).first->getBChiSquare();
+    double toreturn = (topSystemChiSquares_[iTop]).first->getBChiSquare();
     return toreturn;
 }
 
 double topEventMinimizer::getOneWDaughter1ChiSquare(int iTop)
 {
     double toreturn =
-        (topSystemChiSquares_.at(iTop)).first->getWDaughter1ChiSquare();
+        (topSystemChiSquares_[iTop]).first->getWDaughter1ChiSquare();
     return toreturn;
 }
 
 double topEventMinimizer::getOneWMassChiSquare(int iTop)
 {
     double toreturn =
-        (topSystemChiSquares_.at(iTop)).first->getWMassChiSquare();
+        (topSystemChiSquares_[iTop]).first->getWMassChiSquare();
     return toreturn;
 }
 
 void topEventMinimizer::calcTopChiSquare()
 {
     topChi2_ = 0;
-    for (vector<pair<topSystemChiSquare *, bool>>::const_iterator
-             thisTopChiSquare = topSystemChiSquares_.begin();
-         thisTopChiSquare != topSystemChiSquares_.end(); thisTopChiSquare++) {
-        topChi2_ += (*thisTopChiSquare).first->getChiSquare();
+    for (auto it = topSystemChiSquares_.begin();
+         it != topSystemChiSquares_.end(); ++it) {
+        topChi2_ += (*it).first->getChiSquare();
     }
 }
 
 void topEventMinimizer::calcHadronicChiSquare()
 {
     hadChi2_ = 0;
-    for (vector<pair<topSystemChiSquare *, bool>>::const_iterator
-             thisTopChiSquare = topSystemChiSquares_.begin();
-         thisTopChiSquare != topSystemChiSquares_.end(); thisTopChiSquare++) {
-        if (!((*thisTopChiSquare).second))
-            hadChi2_ += (*thisTopChiSquare).first->getHadronicChiSquare();
+    for (auto it = topSystemChiSquares_.begin();
+         it != topSystemChiSquares_.end(); ++it) {
+        if (!((*it).second))
+            hadChi2_ += (*it).first->getHadronicChiSquare();
     }
 }
 
 void topEventMinimizer::calcTopMassChiSquare()
 {
     topMassChi2_ = 0;
-    for (vector<pair<topSystemChiSquare *, bool>>::const_iterator
-             thisTopChiSquare = topSystemChiSquares_.begin();
-         thisTopChiSquare != topSystemChiSquares_.end(); thisTopChiSquare++) {
-        topMassChi2_ += (*thisTopChiSquare).first->getTopMassChiSquare();
+    for (auto it = topSystemChiSquares_.begin();
+         it != topSystemChiSquares_.end(); ++it) {
+        topMassChi2_ += (*it).first->getTopMassChiSquare();
     }
 }
 
@@ -1479,9 +1457,9 @@ void topEventMinimizer::plotEllipses(TString plotName)
 
         // draw second W daughter momentum at the minimum chi^2
         // cout << "Ellipse angle at the minimum chi^2 for top " << iTop << " is
-        // " << ellipseAngles_.at(iTop) << endl;
-        thisWDaughter2Perp[0] = cos(ellipseAngles_.at(iTop));
-        thisWDaughter2Perp[1] = sin(ellipseAngles_.at(iTop));
+        // " << ellipseAngles_[iTop] << endl;
+        thisWDaughter2Perp[0] = cos(ellipseAngles_[iTop]);
+        thisWDaughter2Perp[1] = sin(ellipseAngles_[iTop]);
         thisWDaughter2Perp[2] = 1;
 
         // thisEllipse->Print();
